@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Area Calculator</title>
+    <style>
+      #map {
+        height: 90vh;
+        width: 100%;
+      }
+      #area {
+        padding: 10px;
+        font-size: 18px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <div id="area">Area: 0 sq meters</div>
+
+    <script>
+      let map;
+      let polygon;
+      let path;
+      let markers = [];
+
+      function initMap() {
+        map = new google.maps.Map(document.getElementById("map"), {
+          center: { lat: 28.6139, lng: 77.209 }, // New Delhi center
+          zoom: 12,
+        });
+
+        // Initialize empty polygon path
+        path = new google.maps.MVCArray();
+
+        polygon = new google.maps.Polygon({
+          map: map,
+          paths: path,
+          strokeColor: "#FF0000",
+          strokeOpacity: 0.8,
+          strokeWeight: 2,
+          fillColor: "#FF0000",
+          fillOpacity: 0.35,
+        });
+
+        map.addListener("click", (e) => {
+          addLatLng(e.latLng);
+        });
+      }
+
+      function addLatLng(latLng) {
+        const marker = new google.maps.Marker({
+          position: latLng,
+          map: map,
+        });
+        markers.push(marker);
+
+        path.push(latLng);
+
+        if (path.getLength() >= 3) {
+          const area = google.maps.geometry.spherical.computeArea(path);
+          document.getElementById("area").innerText =
+            "Area: " + area.toFixed(2) + " sq meters";
+        }
+      }
+    </script>
+
+    <script
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAuTrKpvRTh3UtUpGAeILvUAegFBO__g1c&libraries=geometry&callback=initMap"
+      async
+      defer
+    ></script>
+  </body>
+</html>
