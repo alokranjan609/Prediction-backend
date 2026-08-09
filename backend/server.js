@@ -21,6 +21,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
+app.use('/api/predict', require('./routes/prediction'));
 
 // Create admin user on server start
 const User = require('./models/User');
