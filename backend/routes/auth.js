@@ -8,7 +8,14 @@ router.post('/register', async (req, res) => {
   try {
     const { name, email, password } = req.body;
     //console.log(name, email, password);
-    
+    if(!name || !email || !password) {
+      return res.status(400).json({ message: 'Name, email, and password are required' });
+    }
+
+    if(password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
     // Check if user already exists
     let user = await User.findOne({ email });
     if (user) {
@@ -46,7 +53,9 @@ router.post('/login', async (req, res) => {
 
   try {
     const { email, password } = req.body;
-    console.log('Attempting to find user with email:', email); // Log the email being searched
+    if(!email || !password) {
+      return res.status(400).json({ message: 'email, and password are required' });
+    }
 
     const user = await User.findOne({ email });
     console.log('User found from database:', user); // Log the found user
@@ -66,13 +75,13 @@ router.post('/login', async (req, res) => {
 
     const token = jwt.sign(
       { 
-        id: user._id, 
+        userId: user._id, 
         isAdmin: user.isAdmin, 
-        name: user.name 
+        name: user.name ,
+        expiresIn: '1h'
       },
       process.env.JWT_SECRET
     );
-
     console.log('Generated token and sending response with:', { // Log the response data
       token: token.substring(0, 20) + '...', // Only log part of the token for security
       isAdmin: user.isAdmin,
