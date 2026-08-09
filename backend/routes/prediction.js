@@ -1,8 +1,10 @@
 const router = require('express').Router();
 const mlService = require('../services/mlService');
 
+
+const { authenticate } = require('../middleware/auth');
 // POST /api/predict
-router.post('/', async (req, res) => {
+router.post('/', authenticate, async (req, res) => {
   try {
     const { latitude, longitude } = req.body;
 
