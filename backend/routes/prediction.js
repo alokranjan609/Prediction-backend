@@ -1,22 +1,19 @@
 const router = require('express').Router();
-const mlService = require('../services/mlService');
+const openWeather = require('../services/openWeather.service');
 
 
 const { authenticate } = require('../middleware/auth');
-// POST /api/predict
+// /api/predict
 router.post('/', authenticate, async (req, res) => {
   try {
     const { latitude, longitude } = req.body;
 
-    // Validate existence of parameters
     if (latitude === undefined || longitude === undefined) {
       return res.status(400).json({
         success: false,
         message: 'Both latitude and longitude parameters are required in the request body.'
       });
     }
-
-    // Validate parameter types
     const lat = Number(latitude);
     const lon = Number(longitude);
 
@@ -26,8 +23,6 @@ router.post('/', authenticate, async (req, res) => {
         message: 'Coordinates must be valid numeric values.'
       });
     }
-
-    // Validate coordinate ranges
     if (lat < -90 || lat > 90) {
       return res.status(400).json({
         success: false,
@@ -42,18 +37,9 @@ router.post('/', authenticate, async (req, res) => {
       });
     }
 
-    // Delegate to ML service to send coordinates to prediction endpoint
-    const result = await mlService.sendCoordinates(lat, lon);
+    await openWeather.getWeather(lat, lon);
 
-    // Return the response containing original inputs + results
-    res.json({
-      success: true,
-      data: {
-        latitude: lat,
-        longitude: lon,
-        prediction: result
-      }
-    });
+    res.json({ success: true, message: 'Coordinates sent to OpenWeather.' });
 
   } catch (error) {
     console.error('Prediction endpoint error:', error);
