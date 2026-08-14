@@ -92,3 +92,7 @@ If you are using nodemon, the server will restart automatically when files chang
 ```http
 Authorization: Bearer <token>
 ```
+
+## information regarding data flow
+
+

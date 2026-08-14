@@ -5,7 +5,20 @@ const User = require('../models/User');
 // Middleware to verify admin token
 const verifyAdmin = async (req, res, next) => {
   try {
-    const token = req.header('Authorization').replace('Bearer ', '');
+    const authHeader = req.header('Authorization');
+
+    if (!authHeader) {
+      return res.status(401).json({
+        message: 'Authorization header is missing'
+      });
+    }
+
+    if (!authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        message: 'Invalid authorization format'
+      });
+    }
+    const token = authHeader.replace('Bearer ', '');
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
     const user = await User.findById(decoded.userId);
