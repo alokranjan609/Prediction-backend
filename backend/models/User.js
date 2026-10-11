@@ -12,8 +12,21 @@ const userSchema = new mongoose.Schema({
   },
   contactNumber: {
     type: String,
-    required: true,
-    trim: true
+    trim: true,
+    default: null,
+  },
+  accountStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending',
+  },
+  approvalTokenHash: {
+    type: String,
+    default: null,
+  },
+  approvalTokenExpires: {
+    type: Date,
+    default: null,
   },
   sector: {
     type: String,

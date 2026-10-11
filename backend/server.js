@@ -1,4 +1,5 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -55,7 +56,8 @@ const migrateRolesAndCreateAdmin = async () => {
         password: hashedPassword,
         role: 'admin',
         isAdmin: true,
-        contactNumber: 'N/A'
+        contactNumber: null,
+        accountStatus: 'approved',
       });
       console.log(`Admin user created for ${adminEmail}`);
     } else {
@@ -76,8 +78,10 @@ const migrateRolesAndCreateAdmin = async () => {
         console.log(`Promoted user ${adminEmail} to admin`);
       }
 
-      if (!adminExists.contactNumber) {
-        adminExists.contactNumber = 'N/A';
+      if (adminExists.accountStatus !== 'approved') {
+        adminExists.accountStatus = 'approved';
+        adminExists.approvalTokenHash = null;
+        adminExists.approvalTokenExpires = null;
         needsSave = true;
       }
 
@@ -85,6 +89,12 @@ const migrateRolesAndCreateAdmin = async () => {
         await adminExists.save();
       }
     }
+
+    // Legacy accounts created before approval workflow should remain able to log in.
+    await User.updateMany(
+      { accountStatus: { $exists: false } },
+      { $set: { accountStatus: 'approved' } }
+    );
   } catch (error) {
     console.log('Error creating/updating admin:', error);
   }

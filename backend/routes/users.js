@@ -1,10 +1,82 @@
 const router = require('express').Router();
-const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const SearchHistory = require('../models/SearchHistory');
 const { verifyTeam, verifyAdmin } = require('../middleware/auth');
 
-const publicUserFields = '-password -__v';
+const publicUserFields = '-password -__v -approvalTokenHash -approvalTokenExpires';
+
+// Admin: list registrations awaiting approval.
+router.get('/registrations/pending', verifyAdmin, async (req, res) => {
+  try {
+    const pending = await User.find({ accountStatus: 'pending' })
+      .select(publicUserFields)
+      .sort({ createdAt: -1 });
+    res.json(pending.map((user) => ({ ...user.toObject(), role: user.getRole() })));
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Admin: approve a pending registration by user ID.
+router.put('/registrations/:id/approve', verifyAdmin, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    if (user.accountStatus !== 'pending') {
+      return res.status(400).json({ message: `Registration is already ${user.accountStatus}` });
+    }
+    user.accountStatus = 'approved';
+    user.approvalTokenHash = null;
+    user.approvalTokenExpires = null;
+    await user.save();
+
+    res.json({
+      message: `${user.role === 'team' ? 'Team' : 'User'} registration approved successfully`,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.getRole(),
+        accountStatus: user.accountStatus,
+        contactNumber: user.contactNumber,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Admin: reject a pending registration by user ID.
+router.put('/registrations/:id/reject', verifyAdmin, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    if (user.accountStatus !== 'pending') {
+      return res.status(400).json({ message: `Registration is already ${user.accountStatus}` });
+    }
+    user.accountStatus = 'rejected';
+    user.approvalTokenHash = null;
+    user.approvalTokenExpires = null;
+    await user.save();
+
+    res.json({
+      message: `${user.role === 'team' ? 'Team' : 'User'} registration rejected`,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.getRole(),
+        accountStatus: user.accountStatus,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 // Teams and admins can view all users.
 router.get('/', verifyTeam, async (req, res) => {
@@ -57,41 +129,6 @@ router.get('/:id/activity', verifyTeam, async (req, res) => {
   }
 });
 
-// Only an admin can create a team account. /admins remains as a compatibility path.
-router.post(['/teams', '/admins'], verifyAdmin, async (req, res) => {
-  try {
-    const { name, email, password, contactNumber } = req.body;
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Name, email, and password are required' });
-    }
-    if (password.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters' });
-    }
-    if (await User.exists({ email })) {
-      return res.status(409).json({ message: 'User already exists' });
-    }
-
-    const team = await User.create({
-      name,
-      email,
-      password: await bcrypt.hash(password, 10),
-      contactNumber: contactNumber || 'N/A',
-      role: 'team',
-      isAdmin: true
-    });
-
-    const teamResponse = team.toObject();
-    delete teamResponse.password;
-    const response = {
-      message: req.path === '/admins' ? 'Admin created' : 'Team created',
-      team: { ...teamResponse, role: team.getRole() }
-    };
-    if (req.path === '/admins') response.admin = response.team;
-    res.status(201).json(response);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
 
 // Only an admin can remove a team. /admins remains as a compatibility path.
 router.delete(['/teams/:id', '/admins/:id'], verifyAdmin, async (req, res) => {
