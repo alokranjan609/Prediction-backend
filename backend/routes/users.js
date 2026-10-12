@@ -5,7 +5,7 @@ const { verifyTeam, verifyAdmin } = require('../middleware/auth');
 
 const publicUserFields = '-password -__v -approvalTokenHash -approvalTokenExpires';
 
-// Admin: list registrations awaiting approval.
+// Admin: list all pending registrations (users and teams)
 router.get('/registrations/pending', verifyAdmin, async (req, res) => {
   try {
     const pending = await User.find({ accountStatus: 'pending' })
@@ -17,7 +17,7 @@ router.get('/registrations/pending', verifyAdmin, async (req, res) => {
   }
 });
 
-// Admin: approve a pending registration by user ID.
+// Admin: approve pending registration by ID
 router.put('/registrations/:id/approve', verifyAdmin, async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -27,13 +27,14 @@ router.put('/registrations/:id/approve', verifyAdmin, async (req, res) => {
     if (user.accountStatus !== 'pending') {
       return res.status(400).json({ message: `Registration is already ${user.accountStatus}` });
     }
+
     user.accountStatus = 'approved';
     user.approvalTokenHash = null;
     user.approvalTokenExpires = null;
     await user.save();
 
     res.json({
-      message: `${user.role === 'team' ? 'Team' : 'User'} registration approved successfully`,
+      message: `${user.role === 'team' ? 'Team member' : 'User'} approved successfully`,
       user: {
         _id: user._id,
         name: user.name,
@@ -41,6 +42,9 @@ router.put('/registrations/:id/approve', verifyAdmin, async (req, res) => {
         role: user.getRole(),
         accountStatus: user.accountStatus,
         contactNumber: user.contactNumber,
+        sector: user.sector,
+        departmentName: user.departmentName,
+        institutionName: user.institutionName,
       },
     });
   } catch (error) {
@@ -48,7 +52,7 @@ router.put('/registrations/:id/approve', verifyAdmin, async (req, res) => {
   }
 });
 
-// Admin: reject a pending registration by user ID.
+// Admin: reject pending registration by ID
 router.put('/registrations/:id/reject', verifyAdmin, async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -58,13 +62,14 @@ router.put('/registrations/:id/reject', verifyAdmin, async (req, res) => {
     if (user.accountStatus !== 'pending') {
       return res.status(400).json({ message: `Registration is already ${user.accountStatus}` });
     }
+
     user.accountStatus = 'rejected';
     user.approvalTokenHash = null;
     user.approvalTokenExpires = null;
     await user.save();
 
     res.json({
-      message: `${user.role === 'team' ? 'Team' : 'User'} registration rejected`,
+      message: `${user.role === 'team' ? 'Team member' : 'User'} rejected`,
       user: {
         _id: user._id,
         name: user.name,
@@ -128,7 +133,6 @@ router.get('/:id/activity', verifyTeam, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
-
 
 // Only an admin can remove a team. /admins remains as a compatibility path.
 router.delete(['/teams/:id', '/admins/:id'], verifyAdmin, async (req, res) => {

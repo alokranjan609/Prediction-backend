@@ -56,7 +56,7 @@ const migrateRolesAndCreateAdmin = async () => {
         password: hashedPassword,
         role: 'admin',
         isAdmin: true,
-        contactNumber: null,
+        contactNumber: 'N/A',
         accountStatus: 'approved',
       });
       console.log(`Admin user created for ${adminEmail}`);
@@ -82,6 +82,11 @@ const migrateRolesAndCreateAdmin = async () => {
         adminExists.accountStatus = 'approved';
         adminExists.approvalTokenHash = null;
         adminExists.approvalTokenExpires = null;
+        needsSave = true;
+      }
+
+      if (adminExists.accountStatus !== 'approved') {
+        adminExists.accountStatus = 'approved';
         needsSave = true;
       }
 
