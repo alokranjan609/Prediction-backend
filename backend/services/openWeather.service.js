@@ -13,7 +13,7 @@ const getWeather = async (latitude, longitude) => {
     }
   );
 
-  console.log('OpenWeather response:', response.data);
+  // console.log('OpenWeather response:', response.data);
 
   return response.data;
 };
